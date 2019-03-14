@@ -131,7 +131,7 @@ BOOL Queue_Contains(wQueue* queue, void* obj)
  * Adds an object to the end of the Queue.
  */
 
-void Queue_Enqueue(wQueue* queue, void* obj)
+VOID Queue_Enqueue(wQueue* queue, void* obj)
 {
 	if (queue->synchronized)
 		EnterCriticalSection(&queue->lock);

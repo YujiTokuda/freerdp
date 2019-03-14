@@ -204,7 +204,22 @@ void freerdp_device_collection_free(rdpSettings* settings)
 	settings->DeviceArray = NULL;
 	settings->DeviceCount = 0;
 }
+void freerdp_target_net_addresses_free(rdpSettings* settings)
+{
+	UINT32 index;
 
+	for (index = 0; index < settings->TargetNetAddressCount; index++)
+	{
+		free(settings->TargetNetAddresses[index].Address);
+		settings->TargetNetAddresses[index].Length = 0;
+	}
+
+	free(settings->TargetNetAddresses);
+	free(settings->TargetNetPorts);
+	settings->TargetNetAddressCount = 0;
+	settings->TargetNetAddresses = NULL;
+	settings->TargetNetPorts = NULL;
+}
 void freerdp_static_channel_collection_add(rdpSettings* settings, ADDIN_ARGV* channel)
 {
 	if (!settings->StaticChannelArray)
@@ -470,6 +485,8 @@ BOOL freerdp_get_param_bool(rdpSettings* settings, int id)
 		case FreeRDP_AllowDesktopComposition:
 			return settings->AllowDesktopComposition;
 			break;
+		case FreeRDP_RemoteAssistanceMode:
+			return settings->RemoteAssistanceMode;
 
 		case FreeRDP_TlsSecurity:
 			return settings->TlsSecurity;
@@ -926,6 +943,9 @@ int freerdp_set_param_bool(rdpSettings* settings, int id, BOOL param)
 			settings->AllowDesktopComposition = param;
 			break;
 
+		case FreeRDP_RemoteAssistanceMode:
+			settings->RemoteAssistanceMode = param;
+			break;
 		case FreeRDP_TlsSecurity:
 			settings->TlsSecurity = param;
 			break;
@@ -2009,6 +2029,17 @@ char* freerdp_get_param_string(rdpSettings* settings, int id)
 		case FreeRDP_DynamicDSTTimeZoneKeyName:
 			return settings->DynamicDSTTimeZoneKeyName;
 			break;
+		case FreeRDP_RemoteAssistanceSessionId:
+			return settings->RemoteAssistanceSessionId;
+			break;
+		case FreeRDP_RemoteAssistancePassStub:
+			return settings->RemoteAssistancePassStub;
+
+		case FreeRDP_RemoteAssistancePassword:
+			return settings->RemoteAssistancePassword;
+
+		case FreeRDP_RemoteAssistanceRCTicket:
+			return settings->RemoteAssistanceRCTicket;
 
 		case FreeRDP_PreconnectionBlob:
 			return settings->PreconnectionBlob;
@@ -2048,7 +2079,9 @@ char* freerdp_get_param_string(rdpSettings* settings, int id)
 
 		case FreeRDP_ConnectionFile:
 			return settings->ConnectionFile;
-			break;
+
+		case FreeRDP_AssistanceFile:
+			return settings->AssistanceFile;
 
 		case FreeRDP_HomePath:
 			return settings->HomePath;
@@ -2176,7 +2209,21 @@ int freerdp_set_param_string(rdpSettings* settings, int id, char* param)
 		case FreeRDP_DynamicDSTTimeZoneKeyName:
 			settings->DynamicDSTTimeZoneKeyName = _strdup(param);
 			break;
+		case FreeRDP_RemoteAssistanceSessionId:
+			settings->RemoteAssistanceSessionId = _strdup(param);
+			break;
 
+		case FreeRDP_RemoteAssistancePassStub:
+			settings->RemoteAssistancePassStub = _strdup(param);
+			break;
+
+		case FreeRDP_RemoteAssistancePassword:
+			settings->RemoteAssistancePassword = _strdup(param);
+			break;
+
+		case FreeRDP_RemoteAssistanceRCTicket:
+			settings->RemoteAssistanceRCTicket = _strdup(param);
+			break;
 		case FreeRDP_PreconnectionBlob:
 			settings->PreconnectionBlob = _strdup(param);
 			break;
@@ -2215,6 +2262,9 @@ int freerdp_set_param_string(rdpSettings* settings, int id, char* param)
 
 		case FreeRDP_ConnectionFile:
 			settings->ConnectionFile = _strdup(param);
+			break;
+		case FreeRDP_AssistanceFile:
+			settings->AssistanceFile = _strdup(param);
 			break;
 
 		case FreeRDP_HomePath:

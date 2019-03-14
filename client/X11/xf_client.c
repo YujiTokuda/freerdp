@@ -1624,7 +1624,7 @@ int xfreerdp_client_new(freerdp* instance, rdpContext* context)
 	instance->LogonErrorInfo = xf_logon_error_info;
 	instance->ReceiveChannelData = xf_receive_channel_data;
 
-	context->channels = freerdp_channels_new();
+	context->channels = freerdp_channels_new(instance);
 
 	settings = instance->settings;
 	xfc->settings = instance->context->settings;

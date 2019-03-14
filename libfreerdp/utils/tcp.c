@@ -66,7 +66,6 @@
 #define MSG_NOSIGNAL 0
 
 #endif
-
 int freerdp_tcp_connect(const char* hostname, int port)
 {
 	int status;
@@ -95,15 +94,44 @@ int freerdp_tcp_connect(const char* hostname, int port)
 	{
 		sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 
-		if (sockfd < 0)
+		if (sockfd < 0 || sockfd == ~0)
 			continue;
-
-		if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == 0)
+		int fflag = fcntl(sockfd, F_GETFL, 0);
+		fcntl(sockfd, F_SETFL, fflag | O_NONBLOCK);
+		if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) < 0)
+		//{
+		//	fprintf(stderr, "connected to %s:%s\n", hostname, servname);
+		//	break;
+		//}
+		//if(connect(soc, (struct sockaddr*)&addr, sizeof(addr))<0)
 		{
-			fprintf(stderr, "connected to %s:%s\n", hostname, servname);
-			break;
-		}
+			if (errno != EINPROGRESS) perror("connect error");
+			//EINPROGRESS:コネクション要求は始まったが、まだ完了していない
 
+			fd_set rmask, wmask; FD_ZERO(&rmask); FD_SET(sockfd, &rmask); wmask = rmask;
+			struct timeval tv = { 3,0 };
+			int rc = select(sockfd + 1, &rmask, &wmask, NULL, &tv);
+			if (rc < 0) perror("connect-select error");
+			if (rc == 0){ ; }
+			if (rc == 1)
+			{
+					//読み書きが同時に出来る場合
+				struct sockaddr_in name;
+				socklen_t len = sizeof(name);
+				if (getpeername(sockfd, (struct sockaddr*)&name, &len) >= 0)
+				{
+					fprintf(stderr, "connected to %s:%s\n", hostname, servname);
+					fcntl(sockfd, F_SETFL, fflag);
+					break;
+				}
+				else
+				{
+					;
+				}
+			}
+			//フラグを元に戻す
+			fcntl(sockfd, F_SETFL, fflag);
+		}
 		close(sockfd);
 		sockfd = -1;
 	}

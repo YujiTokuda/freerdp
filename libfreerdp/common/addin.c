@@ -30,6 +30,7 @@
 #include <winpr/library.h>
 
 #include <freerdp/addin.h>
+#include <freerdp/svc.h>
 
 
 LPSTR freerdp_get_library_install_path()

@@ -44,8 +44,11 @@
 struct rdp_channel_client_data
 {
 	PVIRTUALCHANNELENTRY entry;
+	PVIRTUALCHANNELENTRYEX entryEx;
 	PCHANNEL_INIT_EVENT_FN pChannelInitEventProc;
+	PCHANNEL_INIT_EVENT_EX_FN pChannelInitEventProcEx;
 	void* pInitHandle;
+	void* lpUserParam; 
 };
 typedef struct rdp_channel_client_data CHANNEL_CLIENT_DATA;
 
@@ -56,7 +59,10 @@ struct rdp_channel_open_data
 	int options;
 	int flags;
 	void* pInterface;
+	rdpChannels* channels;
+	void* lpUserParam;
 	PCHANNEL_OPEN_EVENT_FN pChannelOpenEventProc;
+	PCHANNEL_OPEN_EVENT_EX_FN pChannelOpenEventProcEx;
 };
 typedef struct rdp_channel_open_data CHANNEL_OPEN_DATA;
 
@@ -66,6 +72,7 @@ struct _CHANNEL_OPEN_EVENT
 	UINT32 DataLength;
 	void* UserData;
 	int Index;
+	CHANNEL_OPEN_DATA* pChannelOpenData;
 };
 typedef struct _CHANNEL_OPEN_EVENT CHANNEL_OPEN_EVENT;
 
@@ -97,6 +104,8 @@ struct rdp_channels
 
 	/* control for entry into MyVirtualChannelInit */
 	int can_call_init;
+	/* true once freerdp_channels_post_connect is called */
+	BOOL connected;
 	rdpSettings* settings;
 
 	/* true once freerdp_channels_post_connect is called */
@@ -108,7 +117,14 @@ struct rdp_channels
 	wMessagePipe* MsgPipe;
 
 	DrdynvcClientContext* drdynvc;
+	CRITICAL_SECTION channelsLock;
+	
+	wHashTable* openHandles;
+	wMessageQueue* queue;
+
 };
+static volatile LONG g_OpenHandleSeq =
+    1; /* use global counter to ensure uniqueness across channel manager instances */
 
 #ifdef WITH_DEBUG_CHANNELS
 #define DEBUG_CHANNELS(fmt, ...) DEBUG_CLASS(CHANNELS, fmt, ## __VA_ARGS__)

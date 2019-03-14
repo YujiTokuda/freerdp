@@ -20,6 +20,7 @@
 #ifndef FREERDP_COMMON_ADDIN_H
 #define FREERDP_COMMON_ADDIN_H
 
+//#include <freerdp/svc.h>
 #include <freerdp/api.h>
 #include <freerdp/types.h>
 
@@ -36,6 +37,7 @@
 #define FREERDP_ADDIN_CHANNEL_STATIC		0x00001000
 #define FREERDP_ADDIN_CHANNEL_DYNAMIC		0x00002000
 #define FREERDP_ADDIN_CHANNEL_DEVICE		0x00004000
+#define FREERDP_ADDIN_CHANNEL_ENTRYEX		0x00008000
 
 struct _FREERDP_ADDIN
 {

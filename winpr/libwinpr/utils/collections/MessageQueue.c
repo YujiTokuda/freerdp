@@ -67,7 +67,7 @@ BOOL MessageQueue_Wait(wMessageQueue* queue)
 	return status;
 }
 
-void MessageQueue_Dispatch(wMessageQueue* queue, wMessage* message)
+BOOL MessageQueue_Dispatch(wMessageQueue* queue, wMessage* message)
 {
 	EnterCriticalSection(&queue->lock);
 
@@ -81,6 +81,11 @@ void MessageQueue_Dispatch(wMessageQueue* queue, wMessage* message)
 
 		queue->capacity = new_capacity;
 		queue->array = (wMessage*) realloc(queue->array, sizeof(wMessage) * queue->capacity);
+		if (queue->array)
+		{
+			LeaveCriticalSection(&queue->lock);
+			return FALSE;
+		}
 		ZeroMemory(&(queue->array[old_capacity]), old_capacity * sizeof(wMessage));
 
 		if (queue->tail < old_capacity)
@@ -101,9 +106,10 @@ void MessageQueue_Dispatch(wMessageQueue* queue, wMessage* message)
 		SetEvent(queue->event);
 
 	LeaveCriticalSection(&queue->lock);
+	return TRUE;
 }
 
-void MessageQueue_Post(wMessageQueue* queue, void* context, UINT32 type, void* wParam, void* lParam)
+BOOL MessageQueue_Post(wMessageQueue* queue, void* context, UINT32 type, void* wParam, void* lParam)
 {
 	wMessage message;
 
@@ -113,11 +119,13 @@ void MessageQueue_Post(wMessageQueue* queue, void* context, UINT32 type, void* w
 	message.lParam = lParam;
 
 	MessageQueue_Dispatch(queue, &message);
+	return TRUE;
 }
 
-void MessageQueue_PostQuit(wMessageQueue* queue, int nExitCode)
+BOOL MessageQueue_PostQuit(wMessageQueue* queue, int nExitCode)
 {
 	MessageQueue_Post(queue, NULL, WMQ_QUIT, (void*) (size_t) nExitCode, NULL);
+	return TRUE;
 }
 
 int MessageQueue_Get(wMessageQueue* queue, wMessage* message)

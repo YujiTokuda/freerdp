@@ -20,7 +20,11 @@ set(MODULE_PREFIX "WINPR_CRYPTO")
 
 set(${MODULE_PREFIX}_SRCS
 	crypto.c
-	cert.c)
+	cert.c
+	cipher.c
+	hash.c
+	rand.c
+	crypto.h)
 
 if(MSVC AND (NOT MONOLITHIC_BUILD))
 	set(${MODULE_PREFIX}_SRCS ${${MODULE_PREFIX}_SRCS} module.def)

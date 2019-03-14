@@ -43,10 +43,17 @@
 #include <freerdp/client/cmdline.h>
 #include <freerdp/client/cliprdr.h>
 #include <freerdp/channels/channels.h>
+#include <freerdp/assistance.h>
+#include <freerdp/addin.h>
 
 #include <winpr/crt.h>
 #include <winpr/synch.h>
+//socket
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
+BOOL getInvateString(rdpSettings* settings, char *out_buff);
 struct tf_info
 {
 	void* data;
@@ -71,7 +78,7 @@ struct thread_data
 
 int tf_context_new(freerdp* instance, rdpContext* context)
 {
-	context->channels = freerdp_channels_new();
+	context->channels = freerdp_channels_new(instance);
 	return 0;
 }
 
@@ -322,11 +329,14 @@ int main(int argc, char* argv[])
 
 	channels = instance->context->channels;
 
+	char buff[4096];
 	status = freerdp_client_parse_command_line_arguments(argc, argv, instance->settings);
+	instance->settings->ServerHostname = "192.168.10.103";
+	getInvateString(instance->settings, buff);
 
 	if (status < 0)
 		exit(0);
-
+	freerdp_register_addin_provider(NULL, 0);
 	freerdp_client_load_addins(instance->context->channels, instance->settings);
 
 	data = (struct thread_data*) malloc(sizeof(struct thread_data));
@@ -345,4 +355,39 @@ int main(int argc, char* argv[])
 	freerdp_channels_global_uninit();
 
 	return 0;
+}
+BOOL getInvateString(rdpSettings* settings, char *out_buff)
+{
+	int sd;
+	char buff[4096];
+	struct sockaddr_in addr;
+ 
+	// IPv4 TCP のソケットを作成する
+	if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("socket");
+		return -1;
+	}
+ 
+	// 送信先アドレスとポート番号を設定する
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(13389);
+	addr.sin_addr.s_addr = inet_addr(settings->ServerHostname);
+ 
+	// サーバ接続（TCP の場合は、接続を確立する必要がある）
+	connect(sd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+ 
+	// パケットを TCP で送信
+	memset(buff, 4096, 0);
+	if (recv(sd, buff, 4096, 0) < 0) {
+		perror("send");
+		return -1;
+	}
+	//strcpy(out_buff, buff);
+	close(sd);
+	
+	FILE *fp = fopen(settings->AssistanceFile, "w+");
+	fwrite(buff, sizeof(char), strlen(buff), fp);
+	fclose(fp);
+	
+	return TRUE;
 }

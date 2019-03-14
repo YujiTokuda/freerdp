@@ -32,7 +32,8 @@ set(${MODULE_PREFIX}_COLLECTIONS_SRCS
 	collections/ObjectPool.c
 	collections/StreamPool.c
 	collections/MessageQueue.c
-	collections/MessagePipe.c)
+	collections/MessagePipe.c
+	collections/HashTable.c)
 
 set(${MODULE_PREFIX}_TRIO_SRCS
 	trio/strio.h

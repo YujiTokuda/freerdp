@@ -38,6 +38,8 @@
 #include <freerdp/event.h>
 #include <freerdp/locale/keyboard.h>
 #include <freerdp/version.h>
+#include <freerdp/channels/channels.h>
+#include <freerdp/cache/pointer.h>
 
 /* connectErrorCode is 'extern' in error.h. See comment there.*/
 
@@ -54,6 +56,7 @@
  */
 BOOL freerdp_connect(freerdp* instance)
 {
+	UINT status2 = 0;
 	rdpRdp* rdp;
 	rdpSettings* settings;
 	BOOL status = FALSE;
@@ -66,6 +69,9 @@ BOOL freerdp_connect(freerdp* instance)
 	settings = instance->settings;
 
 	IFCALLRET(instance->PreConnect, status, instance);
+	if (status)
+		status2 = freerdp_channels_pre_connect(instance->context->channels,
+			instance);
 
 	if (settings->KeyboardLayout == KBD_JAPANESE_INPUT_SYSTEM_MS_IME2002)
 	{
@@ -73,7 +79,18 @@ BOOL freerdp_connect(freerdp* instance)
 		settings->KeyboardSubType = 2;
 		settings->KeyboardFunctionKey = 12;
 	}
-
+	if (status)
+	{
+		pointer_cache_register_callbacks(instance->context->update);
+		IFCALLRET(instance->PostConnect, status, instance);
+		if (status)
+			status2 = freerdp_channels_post_connect(instance->context->channels, instance);
+	}
+	else
+	{
+		fprintf(stderr, "%s:%d: freerdp_pre_connect failed\n", __FILE__, __LINE__);
+		return FALSE;
+	}
 	extension_load_and_init_plugins(rdp->extension);
 	extension_pre_connect(rdp->extension);
 

@@ -28,9 +28,11 @@
 #include <freerdp/settings.h>
 #include <freerdp/client/channels.h>
 #include <freerdp/locale/keyboard.h>
+#include <freerdp/svc.h>
 
 #include <freerdp/client/cmdline.h>
 #include <freerdp/version.h>
+#include <freerdp/client.h>
 
 #include "compatibility.h"
 
@@ -998,6 +1000,16 @@ int freerdp_client_command_line_status_print(int argc, char** argv, rdpSettings*
 
 	return 0;
 }
+static BOOL ends_with(const char* str, const char* ext)
+{
+	const size_t strLen = strlen(str);
+	const size_t extLen = strlen(ext);
+
+	if (strLen < extLen)
+		return FALSE;
+
+	return strncmp(&str[strLen - extLen], ext, extLen) == 0;
+}
 
 int freerdp_client_parse_command_line_arguments(int argc, char** argv, rdpSettings* settings)
 {
@@ -1008,10 +1020,26 @@ int freerdp_client_parse_command_line_arguments(int argc, char** argv, rdpSettin
 	DWORD flags;
 	BOOL compatibility;
 	COMMAND_LINE_ARGUMENT_A* arg;
+	BOOL ext = FALSE;
+	BOOL assist = FALSE;
 
+	
+	/* Command line detection fails if only a .rdp or .msrcIncident file
+	* is supplied. Check this case first, only then try to detect
+	* legacy command line syntax. */
+	if (argc > 1)
+	{
+		ext = ends_with(argv[1], ".rdp");
+		assist = ends_with(argv[1], ".msrcIncident");
+	}
+	if (!ext && !assist)
+		compatibility = freerdp_client_detect_command_line(argc, argv, &flags);
+	else
+		compatibility = freerdp_client_detect_command_line(argc - 1, &argv[1], &flags);
+	
+	compatibility = FALSE;
 	freerdp_register_addin_provider(freerdp_channels_load_static_addin_entry, 0);
-
-	compatibility = freerdp_client_detect_command_line(argc, argv, &flags);
+	//compatibility = freerdp_client_detect_command_line(argc, argv, &flags);
 
 	if (compatibility)
 	{
@@ -1020,6 +1048,19 @@ int freerdp_client_parse_command_line_arguments(int argc, char** argv, rdpSettin
 	}
 	else
 	{
+		if (ext)
+		{
+			if (freerdp_client_settings_parse_connection_file(settings, argv[1]))
+				return COMMAND_LINE_ERROR_UNEXPECTED_VALUE;
+		}
+
+		if (assist)
+		{
+			if (freerdp_client_settings_parse_assistance_file(settings,
+				argc,
+				argv) < 0)
+				return COMMAND_LINE_ERROR_UNEXPECTED_VALUE;
+		}
 		CommandLineClearArgumentsA(args);
 		status = CommandLineParseArgumentsA(argc, (const char**) argv, args, flags, settings,
 				freerdp_client_command_line_pre_filter, freerdp_client_command_line_post_filter);
@@ -1664,113 +1705,162 @@ int freerdp_client_parse_command_line_arguments(int argc, char** argv, rdpSettin
 
 int freerdp_client_load_static_channel_addin(rdpChannels* channels, rdpSettings* settings, char* name, void* data)
 {
-	void* entry;
+//	void* entry;
+//
+//	entry = freerdp_load_channel_addin_entry(name, NULL, NULL, 0);
+//
+//	if (entry)
+//	{
+//		if (freerdp_channels_client_load(channels, settings, entry, data) == 0)
+//		{
+//			fprintf(stderr, "loading channel %s\n", name);
+//			return 0;
+//		}
+//	}
+	PVIRTUALCHANNELENTRY entry = NULL;
+	PVIRTUALCHANNELENTRYEX entryEx = NULL;
+	entryEx = (PVIRTUALCHANNELENTRYEX)freerdp_load_channel_addin_entry(name,
+		NULL,
+		NULL,
+		FREERDP_ADDIN_CHANNEL_STATIC | FREERDP_ADDIN_CHANNEL_ENTRYEX);
 
-	entry = freerdp_load_channel_addin_entry(name, NULL, NULL, 0);
+	if (!entryEx)
+		entry = freerdp_load_channel_addin_entry(name, NULL, NULL, FREERDP_ADDIN_CHANNEL_STATIC);
 
-	if (entry)
+	if (entryEx)
+	{
+		if (freerdp_channels_client_load_ex(channels, settings, entryEx, data) == 0)
+		{
+			//WLog_INFO(TAG, "loading channelEx %s", name);
+			return TRUE;
+		}
+	}
+	else if (entry)
 	{
 		if (freerdp_channels_client_load(channels, settings, entry, data) == 0)
 		{
-			fprintf(stderr, "loading channel %s\n", name);
-			return 0;
+			//WLog_INFO(TAG, "loading channel %s", name);
+			return TRUE;
 		}
 	}
-
 	return -1;
 }
 
 int freerdp_client_load_addins(rdpChannels* channels, rdpSettings* settings)
 {
-	int index;
-	ADDIN_ARGV* args;
+//	int index;
+//	ADDIN_ARGV* args;
 
-	if ((freerdp_static_channel_collection_find(settings, "rdpsnd")) ||
-			(freerdp_dynamic_channel_collection_find(settings, "tsmf")))
+//	if ((freerdp_static_channel_collection_find(settings, "rdpsnd")) ||
+//			(freerdp_dynamic_channel_collection_find(settings, "tsmf")))
+//	{
+//		settings->DeviceRedirection = TRUE; /* rdpsnd requires rdpdr to be registered */
+//		settings->AudioPlayback = TRUE; /* Both rdpsnd and tsmf require this flag to be set */
+//	}
+//
+//	if (freerdp_dynamic_channel_collection_find(settings, "audin"))
+//	{
+//		settings->AudioCapture = TRUE;
+//	}
+//
+//	if (settings->RedirectDrives)
+//	{
+//		settings->DeviceRedirection = TRUE;
+//
+//		if (!freerdp_device_collection_find(settings, "drive"))
+//		{
+//			char* params[3];
+//
+//			params[0] = "drive";
+//			params[1] = "media";
+//			params[2] = "*";
+//
+//			freerdp_client_add_device_channel(settings, 3, (char**) params);
+//		}
+//	}
+//
+//	if (settings->RedirectHomeDrive)
+//	{
+//		settings->DeviceRedirection = TRUE;
+//
+//		if (!freerdp_device_collection_find(settings, "drive"))
+//		{
+//			char* params[3];
+//
+//			params[0] = "drive";
+//			params[1] = "home";
+//			params[2] = "%";
+//
+//			freerdp_client_add_device_channel(settings, 3, (char**) params);
+//		}
+//	}
+//
+//	if (settings->DeviceRedirection)
+//	{
+//		freerdp_client_load_static_channel_addin(channels, settings, "rdpdr", settings);
+//
+//		if (!freerdp_static_channel_collection_find(settings, "rdpsnd"))
+//		{
+//			char* params[2];
+//
+//			params[0] = "rdpsnd";
+//			params[1] = "sys:fake";
+//
+//			freerdp_client_add_static_channel(settings, 2, (char**) params);
+//		}
+//	}
+//
+//	if (settings->RedirectClipboard)
+//	{
+//		if (!freerdp_static_channel_collection_find(settings, "cliprdr"))
+//		{
+//			char* params[1];
+//
+//			params[0] = "cliprdr";
+//
+//			freerdp_client_add_static_channel(settings, 1, (char**) params);
+//		}
+//	}
+
+	if (settings->RemoteAssistanceMode)
 	{
-		settings->DeviceRedirection = TRUE; /* rdpsnd requires rdpdr to be registered */
-		settings->AudioPlayback = TRUE; /* Both rdpsnd and tsmf require this flag to be set */
+		settings->EncomspVirtualChannel = TRUE;
+		settings->RemdeskVirtualChannel = TRUE;
+		settings->NlaSecurity = FALSE;
 	}
 
-	if (freerdp_dynamic_channel_collection_find(settings, "audin"))
+	if (settings->EncomspVirtualChannel)
 	{
-		settings->AudioCapture = TRUE;
+		if (!freerdp_client_load_static_channel_addin(channels,
+			settings,
+			"encomsp",
+			settings))
+			return FALSE;
 	}
 
-	if (settings->RedirectDrives)
+	if (settings->RemdeskVirtualChannel)
 	{
-		settings->DeviceRedirection = TRUE;
-
-		if (!freerdp_device_collection_find(settings, "drive"))
-		{
-			char* params[3];
-
-			params[0] = "drive";
-			params[1] = "media";
-			params[2] = "*";
-
-			freerdp_client_add_device_channel(settings, 3, (char**) params);
-		}
+		if (!freerdp_client_load_static_channel_addin(channels,
+			settings,
+			"remdesk",
+			settings))
+			return FALSE;
 	}
+//	for (index = 0; index < settings->StaticChannelCount; index++)
+//	{
+//		args = settings->StaticChannelArray[index];
+//		freerdp_client_load_static_channel_addin(channels, settings, args->argv[0], args);
+//	}
 
-	if (settings->RedirectHomeDrive)
-	{
-		settings->DeviceRedirection = TRUE;
-
-		if (!freerdp_device_collection_find(settings, "drive"))
-		{
-			char* params[3];
-
-			params[0] = "drive";
-			params[1] = "home";
-			params[2] = "%";
-
-			freerdp_client_add_device_channel(settings, 3, (char**) params);
-		}
-	}
-
-	if (settings->DeviceRedirection)
-	{
-		freerdp_client_load_static_channel_addin(channels, settings, "rdpdr", settings);
-
-		if (!freerdp_static_channel_collection_find(settings, "rdpsnd"))
-		{
-			char* params[2];
-
-			params[0] = "rdpsnd";
-			params[1] = "sys:fake";
-
-			freerdp_client_add_static_channel(settings, 2, (char**) params);
-		}
-	}
-
-	if (settings->RedirectClipboard)
-	{
-		if (!freerdp_static_channel_collection_find(settings, "cliprdr"))
-		{
-			char* params[1];
-
-			params[0] = "cliprdr";
-
-			freerdp_client_add_static_channel(settings, 1, (char**) params);
-		}
-	}
-
-	for (index = 0; index < settings->StaticChannelCount; index++)
-	{
-		args = settings->StaticChannelArray[index];
-		freerdp_client_load_static_channel_addin(channels, settings, args->argv[0], args);
-	}
-
-	if (settings->RemoteApplicationMode)
-	{
-		freerdp_client_load_static_channel_addin(channels, settings, "rail", settings);
-	}
-
-	if (settings->DynamicChannelCount)
-	{
-		freerdp_client_load_static_channel_addin(channels, settings, "drdynvc", settings);
-	}
+//	if (settings->RemoteApplicationMode)
+//	{
+//		freerdp_client_load_static_channel_addin(channels, settings, "rail", settings);
+//	}
+//
+//	if (settings->DynamicChannelCount)
+//	{
+//		freerdp_client_load_static_channel_addin(channels, settings, "drdynvc", settings);
+//	}
 
 	return 1;
 }

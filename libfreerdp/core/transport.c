@@ -218,17 +218,17 @@ BOOL transport_connect(rdpTransport* transport, const char* hostname, UINT16 por
 		transport->layer = TRANSPORT_LAYER_TSG;
 		transport->TcpOut = tcp_new(settings);
 
-		status = tcp_connect(transport->TcpIn, settings->GatewayHostname, 443);
+		status = tcp_connect(settings, transport->TcpIn, settings->GatewayHostname, 443);
 
 		if (status)
-			status = tcp_connect(transport->TcpOut, settings->GatewayHostname, 443);
+			status = tcp_connect(settings, transport->TcpOut, settings->GatewayHostname, 443);
 
 		if (status)
 			status = transport_tsg_connect(transport, hostname, port);
 	}
 	else
 	{
-		status = tcp_connect(transport->TcpIn, hostname, port);
+		status = tcp_connect(settings, transport->TcpIn, hostname, port);
 
 		transport->SplitInputOutput = FALSE;
 		transport->TcpOut = transport->TcpIn;

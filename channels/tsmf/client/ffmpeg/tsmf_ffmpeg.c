@@ -107,7 +107,7 @@ static BOOL tsmf_ffmpeg_init_video_stream(ITSMFDecoder* decoder, const TS_AM_MED
 	mdecoder->codec_context->time_base.den = media_type->SamplesPerSecond.Numerator;
 	mdecoder->codec_context->time_base.num = media_type->SamplesPerSecond.Denominator;
 
-	mdecoder->frame = avcodec_alloc_frame();
+	mdecoder->frame = av_frame_alloc();
 
 	return TRUE;
 }
@@ -342,7 +342,7 @@ static BOOL tsmf_ffmpeg_decode_video(ITSMFDecoder* decoder, const BYTE* data, UI
 			mdecoder->codec_context->width, mdecoder->codec_context->height);
 		mdecoder->decoded_data = malloc(mdecoder->decoded_size);
 		ZeroMemory(mdecoder->decoded_data, mdecoder->decoded_size);
-		frame = avcodec_alloc_frame();
+		frame = av_frame_alloc();
 		avpicture_fill((AVPicture*) frame, mdecoder->decoded_data,
 			mdecoder->codec_context->pix_fmt,
 			mdecoder->codec_context->width, mdecoder->codec_context->height);
@@ -412,7 +412,7 @@ static BOOL tsmf_ffmpeg_decode_audio(ITSMFDecoder* decoder, const BYTE* data, UI
 			(int16_t*) dst, &frame_size, src, src_size);
 #else
 		{
-			AVFrame* decoded_frame = avcodec_alloc_frame();
+			AVFrame* decoded_frame = av_frame_alloc();
 			int got_frame = 0;
 			AVPacket pkt;
 			av_init_packet(&pkt);
@@ -501,7 +501,7 @@ static UINT32 tsmf_ffmpeg_get_decoded_format(ITSMFDecoder* decoder)
 
 	switch (mdecoder->codec_context->pix_fmt)
 	{
-		case PIX_FMT_YUV420P:
+		case AV_PIX_FMT_YUV420P:
 			return RDP_PIXFMT_I420;
 
 		default:

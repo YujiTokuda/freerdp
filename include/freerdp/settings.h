@@ -551,6 +551,11 @@ typedef struct _RDPDR_PARALLEL RDPDR_PARALLEL;
 #define FreeRDP_DisableCursorShadow				966
 #define FreeRDP_DisableCursorBlinking				967
 #define FreeRDP_AllowDesktopComposition				968
+#define FreeRDP_RemoteAssistanceMode                               (1024)
+#define FreeRDP_RemoteAssistanceSessionId                          (1025)
+#define FreeRDP_RemoteAssistancePassStub                           (1026)
+#define FreeRDP_RemoteAssistancePassword                           (1027)
+#define FreeRDP_RemoteAssistanceRCTicket                           (1028)
 #define FreeRDP_TlsSecurity					1088
 #define FreeRDP_NlaSecurity					1089
 #define FreeRDP_RdpSecurity					1090
@@ -618,6 +623,7 @@ typedef struct _RDPDR_PARALLEL RDPDR_PARALLEL;
 #define FreeRDP_CredentialsFromStdin				1604
 #define FreeRDP_ComputerName					1664
 #define FreeRDP_ConnectionFile					1728
+#define FreeRDP_AssistanceFile                                     (1729)
 #define FreeRDP_HomePath					1792
 #define FreeRDP_ConfigPath					1793
 #define FreeRDP_CurrentPath					1794
@@ -933,8 +939,8 @@ struct rdp_settings
 	ALIGN64 UINT32 RedirectionTsvUrlLength; /* 1230 */
 	ALIGN64 UINT32 TargetNetAddressCount; /* 1231 */
 	ALIGN64 TARGET_NET_ADDRESS* TargetNetAddresses; /* 1232 */
-	UINT64 padding1280[1280 - 1233]; /* 1233 */
-
+	ALIGN64 UINT32* TargetNetPorts; /* 1233 */
+	UINT64 padding1280[1280 - 1234]; /* 1234 */
 	/**
 	 * Security
 	 */
@@ -999,7 +1005,8 @@ struct rdp_settings
 
 	/* Files */
 	ALIGN64 char* ConnectionFile; /* 1728 */
-	UINT64 padding1792[1792 - 1729]; /* 1729 */
+	ALIGN64 char* AssistanceFile; /* 1729 */
+	UINT64 padding1792[1792 - 1730]; /* 1730 */
 
 	/* Paths */
 	ALIGN64 char* HomePath; /* 1792 */
@@ -1274,6 +1281,18 @@ struct rdp_settings
 	ALIGN64 ADDIN_ARGV** DynamicChannelArray; /* 5058 */
 	UINT64 padding5184[5184 - 5059]; /* 5059 */
 
+	/* Remote Assistance */
+	ALIGN64 BOOL  RemoteAssistanceMode; /* 5059 */
+	ALIGN64 char* RemoteAssistanceSessionId; /* 5060 */
+	ALIGN64 char* RemoteAssistancePassStub; /* 5061 */
+	ALIGN64 char* RemoteAssistancePassword; /* 5062 */
+	ALIGN64 char* RemoteAssistanceRCTicket; /* 5063 */
+	ALIGN64 BOOL  EncomspVirtualChannel; /* 5064 */
+	ALIGN64 BOOL  RemdeskVirtualChannel; /* 5065 */
+	ALIGN64 BOOL  LyncRdpMode; /* 5066 */
+	UINT64 padding5072[5072 - 5067]; /* 5067 */
+	
+	
 	/**
 	 * WARNING: End of ABI stable zone!
 	 *

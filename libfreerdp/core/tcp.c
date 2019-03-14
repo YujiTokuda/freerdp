@@ -114,8 +114,34 @@ void tcp_get_mac_address(rdpTcp * tcp)
 	/* fprintf(stderr, "MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]); */
 }
+struct addrinfo* freerdp_tcp_resolve_host(const char* hostname, int port, int ai_flags)
+{
+	char* service = NULL;
+	char port_str[16];
+	int status;
+	struct addrinfo hints = { 0 };
+	struct addrinfo* result = NULL;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = ai_flags;
 
-BOOL tcp_connect(rdpTcp* tcp, const char* hostname, UINT16 port)
+	if (port >= 0)
+	{
+		sprintf_s(port_str, sizeof(port_str) - 1, "%d", port);
+		service = port_str;
+	}
+
+	status = getaddrinfo(hostname, service, &hints, &result);
+
+	if (status)
+	{
+		freeaddrinfo(result);
+		return NULL;
+	}
+
+	return result;
+}
+BOOL tcp_connect(rdpSettings* settings, rdpTcp* tcp, const char* hostname, UINT16 port)
 {
 	UINT32 option_value;
 	socklen_t option_len;
@@ -132,8 +158,55 @@ BOOL tcp_connect(rdpTcp* tcp, const char* hostname, UINT16 port)
 	}
 	else
 	{
-		tcp->sockfd = freerdp_tcp_connect(hostname, port);
+		if (settings->RemoteAssistanceMode)
+		{
+			if (settings->TargetNetAddressCount > 0)
+			{
+				int count;
+				int sockfd;
+				
+				count = settings->TargetNetAddressCount;
+				for (int i = 0; i < count; i++)
+				{
+					struct addrinfo* result = freerdp_tcp_resolve_host(settings->TargetNetAddresses[i].Address,
+						settings->TargetNetPorts[i], 0);
 
+					if (!result)
+						continue;
+					
+					struct addrinfo* addr = result;
+
+					if ((addr->ai_family == AF_INET6) && (addr->ai_next != 0))
+					{
+						while ((addr = addr->ai_next))
+						{
+							if (addr->ai_family == AF_INET)
+								break;
+						}
+
+						if (!addr)
+							addr = result;
+					}
+					if (!addr || addr->ai_family != AF_INET)
+						continue;
+					
+					sockfd = freerdp_tcp_connect(
+						settings->TargetNetAddresses[i].Address,
+						settings->TargetNetPorts[i]);
+					if (sockfd >= 0)
+					{
+						settings->ServerHostname = _strdup((char *)settings->TargetNetAddresses[i].Address);
+						settings->ServerPort = settings->TargetNetPorts[i];
+						tcp->sockfd = sockfd;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			tcp->sockfd = freerdp_tcp_connect(hostname, port);
+		}
 		if (tcp->sockfd < 0)
 			return FALSE;
 

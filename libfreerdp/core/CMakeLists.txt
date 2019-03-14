@@ -131,7 +131,7 @@ set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} ${OPENSSL_LIBRARIES})
 set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS
 	MONOLITHIC ${MONOLITHIC_BUILD} INTERNAL
 	MODULE freerdp
-	MODULES freerdp-crypto freerdp-codec freerdp-locale freerdp-common freerdp-utils)
+	MODULES freerdp-cache freerdp-crypto freerdp-codec freerdp-locale freerdp-common freerdp-utils)
 
 set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS
 	MONOLITHIC ${MONOLITHIC_BUILD}

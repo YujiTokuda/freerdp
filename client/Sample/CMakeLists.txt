@@ -14,9 +14,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+cmake_minimum_required(VERSION 3.1.3)
 
 set(MODULE_NAME "sfreerdp")
 set(MODULE_PREFIX "FREERDP_CLIENT_SAMPLE")
+link_directories(/usr/local/lib /usr/lib/x86_64-linux-gnu)
+include_directories(/usr/local/include /usr/include/x86_64-linux-gnu)
 
 set(${MODULE_PREFIX}_SRCS
 	freerdp.c)
@@ -27,11 +30,8 @@ set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} ${CMAKE_DL_LIBS})
 
 set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} freerdp-client)
 
-set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS
-	MONOLITHIC ${MONOLITHIC_BUILD}
-	MODULE freerdp
-	MODULES freerdp-core freerdp-gdi freerdp-utils)
-
-target_link_libraries(${MODULE_NAME} ${${MODULE_PREFIX}_LIBS})
+target_link_libraries(${MODULE_NAME}
+	freerdp-client freerdp-core freerdp-gdi freerdp-common  freerdp-utils winpr-crt winpr-synch
+        winpr-crypto winpr-thread pthread)
 
 set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Sample")

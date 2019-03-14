@@ -20,7 +20,8 @@ set(MODULE_PREFIX "FREERDP_COMMON")
 
 set(${MODULE_PREFIX}_SRCS
 	addin.c
-	settings.c)
+	settings.c
+	assistance.c)
 
 add_complex_library(MODULE ${MODULE_NAME} TYPE "OBJECT"
 	MONOLITHIC ${MONOLITHIC_BUILD}

@@ -55,10 +55,14 @@ void Stream_EnsureCapacity(wStream* s, size_t size)
 	}
 }
 
-void Stream_EnsureRemainingCapacity(wStream* s, size_t size)
+BOOL Stream_EnsureRemainingCapacity(wStream* s, size_t size)
 {
 	if (Stream_GetPosition(s) + size > Stream_Capacity(s))
+	{
 		Stream_EnsureCapacity(s, Stream_Capacity(s) + size);
+		return FALSE;		
+	}
+	return TRUE;
 }
 
 wStream* Stream_New(BYTE* buffer, size_t size)

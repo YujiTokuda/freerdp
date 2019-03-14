@@ -25,6 +25,7 @@
 
 #include <freerdp/client/file.h>
 #include <freerdp/client/cmdline.h>
+#include <freerdp/assistance.h>
 
 int freerdp_client_common_new(freerdp* instance, rdpContext* context)
 {
@@ -164,4 +165,66 @@ int freerdp_client_write_connection_file(rdpContext* context, const char* filena
     freerdp_client_rdp_file_free(file);
 
     return status;
+}
+int freerdp_client_settings_parse_connection_file(rdpSettings* settings,
+	const char* filename)
+{
+	rdpFile* file;
+	int ret = -1;
+	file = freerdp_client_rdp_file_new();
+
+	if (!file)
+		return -1;
+
+	if (!freerdp_client_parse_rdp_file(file, filename))
+		goto out;
+
+	if (!freerdp_client_populate_settings_from_rdp_file(file, settings))
+		goto out;
+
+	ret = 0;
+out:
+	freerdp_client_rdp_file_free(file);
+	return ret;
+}
+int freerdp_client_settings_parse_assistance_file(rdpSettings* settings,
+	int argc,
+	char* argv[])
+{
+	int status, x;
+	int ret = -1;
+	char* filename;
+	char* password = NULL;
+	rdpAssistanceFile* file;
+
+	if (!settings || !argv || (argc < 2))
+		return -1;
+
+	filename = argv[1];
+
+	for (x = 2; x < argc; x++)
+	{
+		const char* key = strstr(argv[x], "assistance:");
+
+		if (key)
+			password = strchr(key, ':') + 1;
+	}
+
+	file = freerdp_assistance_file_new();
+
+	if (!file)
+		return -1;
+
+	status = freerdp_assistance_parse_file(file, filename, password);
+
+	if (status < 0)
+		goto out;
+
+	if (!freerdp_assistance_populate_settings_from_assistance_file(file, settings))
+		goto out;
+
+	ret = 0;
+out:
+	freerdp_assistance_file_free(file);
+	return ret;
 }
